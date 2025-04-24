@@ -83,9 +83,7 @@ def main() -> None:
         output_dir = args.output
     else:
         # Default: use templates/cotton/<icon-set>
-        output_dir = os.path.join(
-            "templates", "cotton", icon_set.get("prefix", prefix)
-        )
+        output_dir = os.path.join("templates", "cotton", icon_set.get("prefix", prefix))
 
     # Create output directory if it doesn't exist
     os.makedirs(output_dir, exist_ok=True)
