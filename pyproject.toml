@@ -1,6 +1,6 @@
 [project]
 name = "cotton-iconify"
-version = "0.1.1"
+version = "0.1.2"
 description = "Generate iconify icons as django-cotton components."
 readme = "README.md"
 license = {file = "LICENSE"}
