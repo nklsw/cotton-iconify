@@ -34,9 +34,9 @@ Use as cotton component in Django templates:
 
 ## Usage
 
-By default, icons will be created in the `templates/cotton/<icon-set>` directory. 
+By default, icons will be created in the `templates/cotton/<icon_set>` directory with filenames in snake_case, but they are used in Django templates with kebab-case. 
 ```html
-<!-- example output in templates/cotton/heroicons/check-circle.html -->
+<!-- example output in templates/cotton/heroicons/check_circle.html -->
 
 <c-vars width="1000" height="1000" viewBox="0 0 1000 1000" />
 
@@ -62,7 +62,7 @@ Modify width/height/viewBox attributes of svg:
 
 ### Generation Options
 ```
-usage: cotton-iconify [-h] [--all] [--output OUTPUT] [--source SOURCE] [--force] [--file-prefix FILE_PREFIX] icon_reference
+usage: cotton-iconify [-h] [--all] [--output OUTPUT] [--source SOURCE] [--force] [--file-prefix FILE_PREFIX] [--kebab] icon_reference
 
 Generate Django component SVG files from Iconify JSON files.
 
@@ -79,6 +79,7 @@ options:
   --force, -f           Overwrite existing files without asking
   --file-prefix FILE_PREFIX, -p FILE_PREFIX
                         Prefix to add to generated filenames (e.g., "icon" for icon-name.html)
+  --kebab, -k           Use kebab-case for filenames (default is snake_case)
 ```
 
 #### Specify Output directory
@@ -89,6 +90,16 @@ cotton-iconify heroicons -o templates/cotton/icons
 Usage in Template:
 ```
 <c-icons.check-circle />
+```
+
+#### Use kebab-case filenames (original iconify format)
+Use the -k or --kebab flag to generate filenames with hyphens instead of underscores:
+```
+cotton-iconify heroicons --kebab
+```
+Usage in Template:
+```
+<c-heroicons.check-circle />
 ```
 
 #### Specify prefix for output files
