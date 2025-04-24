@@ -6,7 +6,11 @@ import sys
 from urllib.parse import urljoin
 
 from cotton_iconify.utils import fetch_json
-from cotton_iconify.generators import generate_icon_file, generate_all_icons
+from cotton_iconify.generators import (
+    generate_icon_file,
+    generate_all_icons,
+    to_snake_case,
+)
 
 
 def parse_args() -> argparse.Namespace:
@@ -48,6 +52,12 @@ def parse_args() -> argparse.Namespace:
         "-p",
         help='Prefix to add to generated filenames (e.g., "icon" for icon-name.html)',
     )
+    parser.add_argument(
+        "--kebab",
+        "-k",
+        action="store_true",
+        help="Use kebab-case for filenames (default is snake_case)",
+    )
     return parser.parse_args()
 
 
@@ -82,8 +92,15 @@ def main() -> None:
         # If output is explicitly provided, use it exactly as specified
         output_dir = args.output
     else:
-        # Default: use templates/cotton/<icon-set>
-        output_dir = os.path.join("templates", "cotton", icon_set.get("prefix", prefix))
+        # Get the icon set prefix (folder name)
+        icon_set_prefix = icon_set.get("prefix", prefix)
+
+        # Convert to snake_case unless kebab-case is specifically requested
+        if not args.kebab:
+            icon_set_prefix = to_snake_case(icon_set_prefix)
+
+        # Default: use templates/cotton/<icon-set> (in snake_case or kebab-case as appropriate)
+        output_dir = os.path.join("templates", "cotton", icon_set_prefix)
 
     # Create output directory if it doesn't exist
     os.makedirs(output_dir, exist_ok=True)
@@ -98,13 +115,13 @@ def main() -> None:
     if icon_name and not args.all:
         # Generate a single icon
         success, _ = generate_icon_file(
-            icon_name, icon_set, output_dir, overwrite_all, file_prefix
+            icon_name, icon_set, output_dir, overwrite_all, file_prefix, args.kebab
         )
         if not success:
             sys.exit(1)
     else:
         # Generate all icons
-        generate_all_icons(icon_set, output_dir, overwrite_all, file_prefix)
+        generate_all_icons(icon_set, output_dir, overwrite_all, file_prefix, args.kebab)
 
 
 if __name__ == "__main__":

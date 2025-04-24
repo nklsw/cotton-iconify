@@ -8,6 +8,19 @@ from cotton_iconify.core import resolve_icon, resolve_alias, resolve_all_aliases
 from cotton_iconify.utils import save_file
 
 
+def to_snake_case(text: str) -> str:
+    """
+    Convert a kebab-case string to snake_case.
+
+    Args:
+        text: A string in kebab-case format
+
+    Returns:
+        str: The same string in snake_case format
+    """
+    return text.replace("-", "_")
+
+
 def generate_svg_template(icon_data: Dict[str, Any]) -> str:
     """
     Generate Django component SVG template from icon data.
@@ -75,6 +88,7 @@ def generate_icon_file(
     output_dir: str,
     overwrite_all: Optional[bool] = None,
     file_prefix: str = "",
+    use_kebab: bool = False,
 ) -> Tuple[bool, Optional[bool]]:
     """
     Generate SVG template for a specific icon.
@@ -85,6 +99,7 @@ def generate_icon_file(
         output_dir: Output directory for the generated file
         overwrite_all: Whether to overwrite all existing files
         file_prefix: Prefix to add to generated filenames
+        use_kebab: Whether to use kebab-case for filenames (default: snake_case)
 
     Returns:
         Tuple[bool, Optional[bool]]: Success status and updated overwrite_all value
@@ -94,8 +109,11 @@ def generate_icon_file(
 
     # Prepare filename with prefix and separator
     filename = icon_name
+    if not use_kebab:
+        filename = to_snake_case(filename)
+
     if file_prefix:
-        filename = f"{file_prefix}-{icon_name}"
+        filename = f"{file_prefix}-{filename}"
 
     # Check if the icon exists in regular icons
     if icon_name in icons:
@@ -143,6 +161,7 @@ def generate_all_icons(
     output_dir: str,
     overwrite_all: Optional[bool] = None,
     file_prefix: str = "",
+    use_kebab: bool = False,
 ) -> None:
     """
     Generate templates for all icons in the set.
@@ -152,6 +171,7 @@ def generate_all_icons(
         output_dir: Output directory for the generated files
         overwrite_all: Whether to overwrite all existing files
         file_prefix: Prefix to add to generated filenames
+        use_kebab: Whether to use kebab-case for filenames (default: snake_case)
     """
     icons = icon_set.get("icons", {})
     aliases = icon_set.get("aliases", {})
@@ -173,8 +193,11 @@ def generate_all_icons(
 
         # Prepare filename with prefix and separator
         filename = icon_name
+        if not use_kebab:
+            filename = to_snake_case(filename)
+
         if file_prefix:
-            filename = f"{file_prefix}-{icon_name}"
+            filename = f"{file_prefix}-{filename}"
 
         file_path = os.path.join(output_dir, f"{filename}.html")
         overwrite_all = save_file(file_path, template_content, overwrite_all)
@@ -189,8 +212,11 @@ def generate_all_icons(
 
         # Prepare filename with prefix and separator
         filename = alias_name
+        if not use_kebab:
+            filename = to_snake_case(filename)
+
         if file_prefix:
-            filename = f"{file_prefix}-{alias_name}"
+            filename = f"{file_prefix}-{filename}"
 
         file_path = os.path.join(output_dir, f"{filename}.html")
         overwrite_all = save_file(file_path, template_content, overwrite_all)
@@ -200,6 +226,7 @@ def generate_all_icons(
             print(f"Generated {count} template files...")
 
     prefix_info = f" with prefix '{file_prefix}-'" if file_prefix else ""
+    case_info = "kebab-case" if use_kebab else "snake_case"
     print(
-        f"Successfully generated {count} Django component templates{prefix_info} in {output_dir}"
+        f"Successfully generated {count} Django component templates in {case_info}{prefix_info} in {output_dir}"
     )

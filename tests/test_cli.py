@@ -5,7 +5,11 @@ import filecmp
 from pathlib import Path
 import pytest
 from cotton_iconify.cli import main
-from cotton_iconify.generators import generate_icon_file, generate_all_icons
+from cotton_iconify.generators import (
+    generate_icon_file,
+    generate_all_icons,
+    to_snake_case,
+)
 
 
 # Helper function to assert directories match
@@ -108,9 +112,9 @@ class TestCottonIconify:
         # Choose a specific icon to test
         icon_name = "amex"
 
-        # Generate the icon
+        # Generate the icon with kebab-case to match expected output
         success, _ = generate_icon_file(
-            icon_name, icon_set, temp_output_dir, overwrite_all=True
+            icon_name, icon_set, temp_output_dir, overwrite_all=True, use_kebab=True
         )
 
         # Check that the file was created successfully
@@ -121,13 +125,48 @@ class TestCottonIconify:
         generated_file_path = Path(temp_output_dir) / f"{icon_name}.html"
         assert_file_content_equal(generated_file_path, expected_file_path, icon_name)
 
+    def test_generate_single_icon_snake_case(self, icon_set, temp_output_dir):
+        """Test generating a single icon with snake_case filename"""
+        # Choose a specific icon to test
+        icon_name = "blogger-rect"
+        snake_case_name = to_snake_case(icon_name)
+
+        # Generate the icon with snake_case as default
+        success, _ = generate_icon_file(
+            icon_name, icon_set, temp_output_dir, overwrite_all=True
+        )
+
+        # Check that the file was created successfully
+        assert success, f"Failed to generate icon {icon_name}"
+
+        # Verify the filename is in snake_case
+        generated_file_path = Path(temp_output_dir) / f"{snake_case_name}.html"
+        assert generated_file_path.exists(), (
+            f"Snake case file {snake_case_name}.html does not exist"
+        )
+
     def test_generate_all_icons(self, icon_set, temp_output_dir, expected_output_dir):
-        """Test generating all icons and compare with expected output"""
+        """Test generating all icons with kebab-case to match expected output"""
         # Generate all icons
-        generate_all_icons(icon_set, temp_output_dir, overwrite_all=True)
+        generate_all_icons(
+            icon_set, temp_output_dir, overwrite_all=True, use_kebab=True
+        )
 
         # Compare generated files with expected output
         assert_directories_equal(temp_output_dir, expected_output_dir)
+
+    def test_generate_all_icons_snake_case(self, icon_set, temp_output_dir):
+        """Test generating all icons with snake_case filenames"""
+        # Generate all icons with snake_case (default)
+        generate_all_icons(icon_set, temp_output_dir, overwrite_all=True)
+
+        # Check if at least one expected file is in snake_case
+        for kebab_name in ["box-rect", "blogger-rect"]:
+            snake_case_name = to_snake_case(kebab_name)
+            snake_case_path = Path(temp_output_dir) / f"{snake_case_name}.html"
+            assert snake_case_path.exists(), (
+                f"Snake case file {snake_case_name}.html does not exist"
+            )
 
     def test_multiple_specific_icons(
         self, icon_set, temp_output_dir, expected_output_dir
@@ -136,10 +175,10 @@ class TestCottonIconify:
         # Choose a few icons to test
         icon_names = ["facebook", "youku", "box"]
 
-        # Generate each icon
+        # Generate each icon with kebab-case to match expected output
         for icon_name in icon_names:
             success, _ = generate_icon_file(
-                icon_name, icon_set, temp_output_dir, overwrite_all=True
+                icon_name, icon_set, temp_output_dir, overwrite_all=True, use_kebab=True
             )
             assert success, f"Failed to generate icon {icon_name}"
 
@@ -150,6 +189,37 @@ class TestCottonIconify:
             assert_file_content_equal(
                 generated_file_path, expected_file_path, icon_name
             )
+
+    def test_kebab_flag_vs_default(self, icon_set, temp_output_dir):
+        """Test that kebab flag and default snake_case produce different filenames"""
+        # Test icon with hyphen
+        icon_name = "box-rect"
+
+        # Create two temp dirs for different output types
+        kebab_dir = Path(temp_output_dir) / "kebab"
+        snake_dir = Path(temp_output_dir) / "snake"
+        kebab_dir.mkdir()
+        snake_dir.mkdir()
+
+        # Generate with kebab-case
+        generate_icon_file(
+            icon_name, icon_set, kebab_dir, overwrite_all=True, use_kebab=True
+        )
+
+        # Generate with default snake_case
+        generate_icon_file(icon_name, icon_set, snake_dir, overwrite_all=True)
+
+        # Verify filename differences
+        kebab_file = kebab_dir / f"{icon_name}.html"
+        snake_file = snake_dir / f"{to_snake_case(icon_name)}.html"
+
+        assert kebab_file.exists(), f"Kebab case file {icon_name}.html does not exist"
+        assert snake_file.exists(), (
+            f"Snake case file {to_snake_case(icon_name)}.html does not exist"
+        )
+        assert kebab_file.name != snake_file.name, (
+            "Kebab and snake case filenames should be different"
+        )
 
     @pytest.mark.parametrize(
         "cli_args,icon_to_check",
@@ -174,6 +244,9 @@ class TestCottonIconify:
         icon_to_check,
     ):
         """Test the CLI functionality using requests_mock"""
+        # Add --kebab flag to match expected output in test data
+        cli_args.append("--kebab")
+
         # Prepare CLI arguments
         full_args = ["cotton-iconify"] + cli_args
 
@@ -204,3 +277,103 @@ class TestCottonIconify:
         else:
             # Compare all files
             assert_directories_equal(temp_output_dir, expected_output_dir)
+
+    def test_default_dir_snake_case(
+        self,
+        mock_brandico_request,
+        monkeypatch,
+        tmp_path,
+    ):
+        """Test that the default output directory uses snake_case for icon set name"""
+        # Create a mock templates directory structure inside tmp_path
+        templates_dir = tmp_path / "templates"
+        templates_dir.mkdir()
+
+        # Use a hyphenated icon set name to test conversion
+        mock_icon_set_name = "icon-set-with-hyphens"
+        expected_snake_case = "icon_set_with_hyphens"
+
+        # Prepare CLI arguments without --kebab flag
+        full_args = ["cotton-iconify", f"{mock_icon_set_name}:facebook", "--force"]
+
+        # Override os.getcwd() to return our tmp_path
+        monkeypatch.chdir(tmp_path)
+
+        # Mock the fetch_json function to return our custom icon set
+        def mock_fetch_json(url):
+            return {
+                "prefix": mock_icon_set_name,
+                "icons": {
+                    "facebook": {"body": '<path d="M1 1"/>', "width": 24, "height": 24}
+                },
+            }
+
+        monkeypatch.setattr("cotton_iconify.cli.fetch_json", mock_fetch_json)
+
+        # Mock sys.argv
+        monkeypatch.setattr("sys.argv", full_args)
+
+        # Run the CLI
+        main()
+
+        # Check that folder was created with snake_case name
+        expected_folder = templates_dir / "cotton" / expected_snake_case
+        assert expected_folder.exists(), (
+            f"Expected snake_case folder {expected_folder} does not exist"
+        )
+
+        # Facebook.html should be in snake_case folder and have snake_case filename
+        expected_file = expected_folder / "facebook.html"
+        assert expected_file.exists(), "Icon file not found in the snake_case folder"
+
+    def test_kebab_flag_preserves_kebab_folder(
+        self,
+        mock_brandico_request,
+        monkeypatch,
+        tmp_path,
+    ):
+        """Test that the --kebab flag preserves kebab-case for icon set name"""
+        # Create a mock templates directory structure inside tmp_path
+        templates_dir = tmp_path / "templates"
+        templates_dir.mkdir()
+
+        # Use a hyphenated icon set name
+        mock_icon_set_name = "icon-set-with-hyphens"
+
+        # Prepare CLI arguments with --kebab flag
+        full_args = [
+            "cotton-iconify",
+            f"{mock_icon_set_name}:facebook",
+            "--force",
+            "--kebab",
+        ]
+
+        # Override os.getcwd() to return our tmp_path
+        monkeypatch.chdir(tmp_path)
+
+        # Mock the fetch_json function to return our custom icon set
+        def mock_fetch_json(url):
+            return {
+                "prefix": mock_icon_set_name,
+                "icons": {
+                    "facebook": {"body": '<path d="M1 1"/>', "width": 24, "height": 24}
+                },
+            }
+
+        monkeypatch.setattr("cotton_iconify.cli.fetch_json", mock_fetch_json)
+
+        # Mock sys.argv
+        monkeypatch.setattr("sys.argv", full_args)
+
+        # Run the CLI
+        main()
+
+        # Check that folder was created with kebab-case name
+        expected_folder = templates_dir / "cotton" / mock_icon_set_name
+        assert expected_folder.exists(), (
+            f"Expected kebab-case folder {expected_folder} does not exist"
+        )
+
+        # Facebook.html should be in kebab-case folder
+        expected_file = expected_folder / "facebook.html"
+        assert expected_file.exists(), "Icon file not found in the kebab-case folder"
