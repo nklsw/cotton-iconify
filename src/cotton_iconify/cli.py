@@ -20,10 +20,8 @@ def parse_args() -> argparse.Namespace:
         description="Generate Django component SVG files from Iconify JSON files."
     )
     parser.add_argument(
-        "prefix", help='Icon set prefix (e.g., "brandico" for brandico.json)'
-    )
-    parser.add_argument(
-        "icon", nargs="?", help="Optional: specific icon name to generate"
+        "icon_reference",
+        help='Icon set prefix (e.g., "brandico") or full reference with icon (e.g. "brandico:facebook")',
     )
     parser.add_argument(
         "--all", "-a", action="store_true", help="Generate all icons from the set"
@@ -65,8 +63,15 @@ def main() -> None:
     """
     args = parse_args()
 
+    # Parse the icon reference (could be either "prefix" or "prefix:icon")
+    if ":" in args.icon_reference:
+        prefix, icon_name = args.icon_reference.split(":", 1)
+    else:
+        prefix = args.icon_reference
+        icon_name = None
+
     # Construct URL for JSON file
-    json_url = urljoin(args.source, f"{args.prefix}.json")
+    json_url = urljoin(args.source, f"{prefix}.json")
 
     # Fetch and parse JSON
     print(f"Fetching {json_url}...")
@@ -78,9 +83,7 @@ def main() -> None:
         output_dir = args.output
     else:
         # Default: use templates/cotton/<icon-set>
-        output_dir = os.path.join(
-            "templates", "cotton", icon_set.get("prefix", args.prefix)
-        )
+        output_dir = os.path.join("templates", "cotton", icon_set.get("prefix", prefix))
 
     # Create output directory if it doesn't exist
     os.makedirs(output_dir, exist_ok=True)
@@ -92,10 +95,10 @@ def main() -> None:
     file_prefix = args.file_prefix or ""
 
     # Check if we're generating all icons or just one
-    if args.icon and not args.all:
+    if icon_name and not args.all:
         # Generate a single icon
         success, _ = generate_icon_file(
-            args.icon, icon_set, output_dir, overwrite_all, file_prefix
+            icon_name, icon_set, output_dir, overwrite_all, file_prefix
         )
         if not success:
             sys.exit(1)

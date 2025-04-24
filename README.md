@@ -24,7 +24,7 @@ cotton-iconify heroicons
 
 Generate a single icon
 ```
-cotton-iconify heroicons check-circle
+cotton-iconify heroicons:check-circle
 ```
 
 Use as cotton component in Django templates:
@@ -62,13 +62,12 @@ Modify width/height/viewBox attributes of svg:
 
 ### Generation Options
 ```
-usage: cotton-iconify [-h] [--all] [--output OUTPUT] [--source SOURCE] [--force] [--file-prefix FILE_PREFIX] prefix [icon]
+usage: cotton-iconify [-h] [--all] [--output OUTPUT] [--source SOURCE] [--force] [--file-prefix FILE_PREFIX] icon_reference
 
 Generate Django component SVG files from Iconify JSON files.
 
 positional arguments:
-  prefix                Icon set prefix (e.g., "brandico" for brandico.json)
-  icon                  Optional: specific icon name to generate
+  icon_reference        Icon set prefix (e.g., "brandico") or full reference with icon (e.g. "brandico:facebook")
 
 options:
   -h, --help            show this help message and exit

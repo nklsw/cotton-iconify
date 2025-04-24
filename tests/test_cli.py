@@ -155,7 +155,7 @@ class TestCottonIconify:
         "cli_args,icon_to_check",
         [
             (
-                ["brandico", "facebook", "--force"],
+                ["brandico:facebook", "--force"],
                 "facebook",  # Check specific icon
             ),
             (
